@@ -69,7 +69,7 @@ describe('updateTimer', () => {
         const timeDisplay = document.getElementById('time-display');
         expect(timeDisplay.innerHTML).toEqual('5:00');
         expect(app.onWork).not.toBeTruthy(); // 休憩時間に切り替わっている  
-        expect(app.getHistory()).toEqual([app.endAt.add(100, 'millisecond').valueOf()]); // データの保存を確認 
+        expect(app.getHistory()).toEqual([endAt.add(100, 'millisecond').valueOf()]); // データの保存を確認 
     });
 
     test('休憩時間が終わったら作業時間に切り替える', () => {
