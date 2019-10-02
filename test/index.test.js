@@ -1,6 +1,7 @@
 import App from '../src/index';
 import template from './template';
 import moment from 'moment';
+/* eslint-disable eol-last */
 
 describe('displayTime', () => {
     test('初期化時に25:00を表示する', () => {
@@ -53,6 +54,21 @@ describe('startTimer', () => {
 });
 // カウントダウンが0秒になった時の切り替えを表示する
 describe('updateTimer', () => {
+    test('タイムディスプレイを更新する', () => {
+        document.body.innerHTML = template;
+        const app = new App();
+        const now = moment();
+        const startOfToday = now.startOf('day');
+        app.startButton.disabled = true;
+        app.stopButton.disabled = false;
+        app.isTimerStopped = false;
+        app.startAt = startOfToday;
+        app.endAt = moment(startOfToday).add(25, 'minutes');
+        app.updateTimer(moment(startOfToday).add(10, 'seconds'));
+        const timeDisplay = document.getElementById('time-display');
+        expect(timeDisplay.innerHTML).toEqual('24:50');
+    });
+
     test('作業時間が終わったら休憩時間に切り替える', () => {
         document.body.innerHTML = template;
         const app = new App();
@@ -68,8 +84,7 @@ describe('updateTimer', () => {
         app.updateTimer(moment(startOfToday).add(25, 'minutes').add(100, 'millisecond'));
         const timeDisplay = document.getElementById('time-display');
         expect(timeDisplay.innerHTML).toEqual('5:00');
-        expect(app.onWork).not.toBeTruthy(); // 休憩時間に切り替わっている  
-        expect(app.getHistory()).toEqual([endAt.add(100, 'millisecond').valueOf()]); // データの保存を確認 
+        expect(app.onWork).not.toBeTruthy(); // 休憩時間に切り替わっている
     });
 
     test('休憩時間が終わったら作業時間に切り替える', () => {
@@ -89,6 +104,7 @@ describe('updateTimer', () => {
         const timeDisplay = document.getElementById('time-display');
         expect(timeDisplay.innerHTML).toEqual('25:00');
         expect(app.onWork).toBeTruthy(); // 作業時間に切り替わっている
+        expect(app.getHistory()).toEqual([endAt.add(100, 'millisecond').valueOf()]); // データの保存を確認   
     });
 });
 
@@ -156,3 +172,46 @@ describe('displayCyclesToday', () => {
         localStorage.clear();
     })
 })
+
+describe('displayHistory', () => {
+    test('今日の開始時の7日前から今日の開始時までの回数を1日ずつ取得', () => {
+        document.body.innerHTML = template;
+        const startOfToday = moment().startOf('day');
+        const SevenDaysAgo = moment(startOfToday).subtract(7, 'days');
+        const val1 = moment(SevenDaysAgo).add(50, 'minutes').valueOf();
+        const val2 = moment(SevenDaysAgo).add(80, 'minutes').valueOf();
+        const val3 = moment(SevenDaysAgo).add(2, 'days').add('3', 'hours').valueOf();
+        const val4 = moment(SevenDaysAgo)
+          .add(3, 'days')
+          .add('2', 'hours')
+          .valueOf();
+        const collection = [val1, val2, val3, val4];
+        localStorage.setItem('intervalData', JSON.stringify(collection));
+        const app = new App();
+        const sevenDaysAgoTh = document.getElementsByTagName('th')[0];
+        const fiveDaysAgoTh = document.getElementsByTagName('th')[2];
+        const sevenDaysAgoTd = document.getElementsByTagName('td')[0];
+        const fiveDaysAgoTd = document.getElementsByTagName('td')[2];
+        expect(sevenDaysAgoTh.innerHTML).toEqual(SevenDaysAgo.format('MM月DD日'));
+        expect(fiveDaysAgoTh.innerHTML).toEqual(SevenDaysAgo.add(2, 'days').format('MM月DD日'));
+        expect(sevenDaysAgoTd.innerHTML).toEqual('2回<br>達成率50%');
+        expect(fiveDaysAgoTd.innerHTML).toEqual('1回<br>達成率25%');
+        expect(app.getHistory().length).toEqual(4);
+    })
+})
+
+describe('removeOldHistory', () => {
+    test('7日以前のデータを削除する', () => {
+        const startOfToday = moment().startOf('day');
+        const val1 = moment(startOfToday).subtract(8, 'days').add(30, 'minutes').valueOf(); // 8日前のデータを作成
+        const val2 = moment(startOfToday).subtract(5, 'days').add(60, 'minutes').valueOf(); // 5日前のデータを作成
+        const collection = [val1, val2];
+        document.body.innerHTML = template;
+        const app = new App();
+        localStorage.setItem('intervalData', JSON.stringify(collection));
+        app.removeOldHistory();
+        expect(App.getHistory()).not.toContain(val1); // 8日前のデータは削除される
+        expect(App.getHistory()).toContain(val2); // 5日前のデータは削除されず残る
+        localStorage.clear();
+    });
+});
